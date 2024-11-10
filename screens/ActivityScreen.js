@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { GoogleGenerativeAI } from '@google/generative-ai';
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
@@ -39,19 +39,62 @@ export default function ActivityScreen() {
     }
   };
 
-  // Mock image validation (replace this function with Gemini API call)
-  const handleImageValidation = async () => {
-    if (!image) {
-      Alert.alert('No image uploaded!');
-      return;
-    }
-
-    // Mock validation result
-    const mockValidationResult = 'Yes, this is a photograph. It\'s a close-up selfie-style photo.';
-    setValidationResult(mockValidationResult);
-    console.log('Validation result:', mockValidationResult);
+  const getBase64FromUri = async (uri) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
+  const handleImageValidation = async () => {
+    try {
+      const imageUri = await AsyncStorage.getItem('selectedImageUri');
+      if (!imageUri) {
+        Alert.alert('No image found in local storage!');
+        return;
+      }
 
+      console.log('Retrieved image URI from local storage:', imageUri);
+
+      // Convert image to base64
+      const base64Image = await getBase64FromUri(imageUri);
+
+      // Initialize the Gemini API
+      const genAI = new GoogleGenerativeAI("AIzaSyA_fijktJ7-6b-3d72eUwIaJ3rRpref1oo"); // Make sure to use EXPO_PUBLIC_ prefix
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use gemini-1.5-pro for image analysis
+
+      // Prepare the image data
+      const imageData = {
+        inlineData: {
+          data: base64Image,
+          mimeType: 'image/jpeg'
+        }
+      };
+
+      // Generate content with the image
+      const result = await model.generateContent([
+        'Is this a photo?',
+        imageData
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('Validation result:', text);
+      setValidationResult(text);
+      Alert.alert('Validation Complete', text);
+
+    } catch (error) {
+      console.error('Error validating image:', error);
+      Alert.alert('Error', 'Failed to validate image: ' + error.message);
+    }
+  };
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Select Activity Type</Text>
@@ -73,7 +116,7 @@ export default function ActivityScreen() {
 
       {image ? (
         <View style={styles.imageResultContainer}>
-          <Text style={styles.imageUriText}>Image uploaded: {image}</Text>
+          {/* <Text style={styles.imageUriText}>Image uploaded: {image}</Text> */}
           {validationResult ? (
             <Text style={styles.validationResultText}>{validationResult}</Text>
           ) : (
