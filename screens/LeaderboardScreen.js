@@ -65,6 +65,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
+        backgroundColor: '#4CAF50',  // Green background color
+        color: '#fff',  
+        paddingVertical: 10,  
+        borderRadius: 5, 
     },
     leaderboardItem: {
         flexDirection: 'row',
