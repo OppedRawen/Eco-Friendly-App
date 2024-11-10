@@ -4,10 +4,12 @@ import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleAIFileManager, GoogleGenerativeAI } from '@google/generative-ai';
 
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
+  const [validationResult, setValidationResult] = useState('');
 
   const handleImageUpload = async () => {
     if (!selectedActivity) {
