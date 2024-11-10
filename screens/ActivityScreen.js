@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, TouchableOpacity, ScrollView,Animated, Easing,Image, Modal  } from 'react-native';
+import React, { useState, useEffect,useRef } from 'react';
+import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, ScrollView,Animated, Easing,Image, Modal  } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
