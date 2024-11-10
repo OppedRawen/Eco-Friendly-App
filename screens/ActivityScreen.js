@@ -36,7 +36,7 @@ export default function ActivityScreen() {
         setValidationResult(''); // Clear previous validation result
         setIsLoading(false); // Reset loading state on re-upload
         await AsyncStorage.setItem('selectedImageUri', imageUri);
-        console.log('Image URI saved to local storage:', imageUri);
+        // console.log('Image URI saved to local storage:', imageUri);
         Alert.alert("Image selected successfully! Please proceed with validation.");
       } else {
         console.error("Image URI is undefined");

@@ -30,7 +30,7 @@ const HeaderRight = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      console.log("User signed out successfully");
+     
       navigation.replace("Login");
     } catch (error) {
       console.error("Error signing out: ", error);
