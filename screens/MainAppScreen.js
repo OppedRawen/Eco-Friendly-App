@@ -1,13 +1,21 @@
-// screens/MainAppScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MainAppScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+      }
+    })();
+  }, []);
 
   const handleImageUpload = async () => {
     if (!selectedActivity) {
@@ -22,10 +30,19 @@ export default function MainAppScreen() {
       quality: 1,
     });
 
-    if (!result.cancelled) {
-      setImage(result.uri);
-      Alert.alert("Image uploaded successfully!", `Activity: ${selectedActivity}`);
-      // Add your image upload logic here, e.g., uploading to Firebase Storage
+    if (!result.cancelled && result.assets && result.assets.length > 0) {
+      const imageUri = result.assets[0].uri;
+      if (imageUri) {
+        setImage(imageUri);
+        Alert.alert("Image selected successfully!", `Activity: ${selectedActivity}`);
+        // Save the image URI to local storage
+        await AsyncStorage.setItem('selectedImageUri', imageUri);
+        console.log('Image URI saved to local storage:', imageUri);
+      } else {
+        console.error("Image URI is undefined");
+      }
+    } else {
+      console.error("Image selection was cancelled or no image assets found");
     }
   };
 
