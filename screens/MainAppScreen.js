@@ -9,6 +9,7 @@ import ActivityScreen from './ActivityScreen';
 import ProfileScreen from './ProfileScreen';
 import ActivityFeed from './ActivityFeed';
 
+
 const Tab = createBottomTabNavigator();
 
 export default function MainAppScreen() {

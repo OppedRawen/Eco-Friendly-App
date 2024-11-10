@@ -8,6 +8,7 @@ import { auth } from './firebaseConfig';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import MainAppScreen from './screens/MainAppScreen';
+
 import * as Location from 'expo-location';
 
 const Stack = createStackNavigator();

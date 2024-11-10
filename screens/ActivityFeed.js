@@ -1,70 +1,124 @@
-// ActivityFeed.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, SectionList, ActivityIndicator } from 'react-native';
 import { db } from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+
+const activityTypeIcons = {
+  "Gardening": "🌱",
+  "Recycling": "♻️",
+  "Litter Collection": "🗑️",
+  "Tree Planting": "🌳",
+  "Reducing Water Waste": "💧",
+  "Saving Energy": "💡",
+  "Walking or Cycling": "🚴‍♂️",
+  "Carpooling": "🚗",
+  "Wildlife Protection": "🐾",
+  "Eco-Workshops and Campaigns": "👥",
+};
+
+const activityTypeColors = {
+  "Gardening": "#27ae60",
+  "Recycling": "#2980b9",
+  "Litter Collection": "#f39c12",
+  "Tree Planting": "#2ecc71",
+  "Reducing Water Waste": "#3498db",
+  "Saving Energy": "#f1c40f",
+  "Walking or Cycling": "#8e44ad",
+  "Carpooling": "#e67e22",
+  "Wildlife Protection": "#e74c3c",
+  "Eco-Workshops and Campaigns": "#9b59b6",
+};
+
+function formatTimestamp(timestamp) {
+  const date = parseISO(timestamp);
+  if (isToday(date)) {
+    return `Today at ${format(date, "h:mm a")}`;
+  } else if (isYesterday(date)) {
+    return `Yesterday at ${format(date, "h:mm a")}`;
+  } else {
+    return format(date, "MM/dd/yyyy 'at' h:mm a");
+  }
+}
+
+function groupActivitiesByDate(activities) {
+  const grouped = activities.reduce((sections, activity) => {
+    const dateKey = format(parseISO(activity.completed_at), "yyyy-MM-dd");
+    if (!sections[dateKey]) sections[dateKey] = [];
+    sections[dateKey].push(activity);
+    return sections;
+  }, {});
+
+  return Object.keys(grouped).map(date => ({
+    title: format(parseISO(date), isToday(parseISO(date)) ? "'Today'" : "MMMM d, yyyy"),
+    data: grouped[date],
+  }));
+}
 
 export default function ActivityFeed() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchActivities = async () => {
-      setLoading(true);
-      try {
-        const usersCollection = collection(db, 'users');
-        const userDocs = await getDocs(usersCollection);
-        let allActivities = [];
+    async function fetchActivities() {
+      const activityCollection = collection(db, "users");
+      const activityDocs = await getDocs(activityCollection);
+      const allActivities = [];
 
-        userDocs.forEach(doc => {
-          const userData = doc.data();
-          const userName = userData.name;
-          const activityHistory = userData.activity_history || [];
+      activityDocs.forEach(doc => {
+        const data = doc.data();
+        const { name } = data;
 
-          activityHistory.forEach(activity => {
-            allActivities.push({
-              ...activity,
-              userName, // Add user name for display
-            });
+        if (data.activity_history && Array.isArray(data.activity_history)) {
+          data.activity_history.forEach(activity => {
+            allActivities.push({ ...activity, username: name });
           });
-        });
+        }
+      });
 
-        // Sort activities by completed_at timestamp in descending order
-        allActivities.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
-        setActivities(allActivities);
-      } catch (error) {
-        console.error('Error fetching activities:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Sort activities by most recent
+      allActivities.sort((a, b) => parseISO(b.completed_at) - parseISO(a.completed_at));
+      setActivities(groupActivitiesByDate(allActivities));
+      setLoading(false);
+    }
 
     fetchActivities();
   }, []);
 
-  const renderActivity = ({ item }) => (
-    <View style={styles.activityContainer}>
-      <Text style={styles.userName}>{item.userName}</Text>
-      <Text style={styles.activityType}>{item.activity_type}</Text>
-      <Text style={styles.activityDate}>
-        Completed on: {new Date(item.completed_at).toLocaleDateString()} at {new Date(item.completed_at).toLocaleTimeString()}
-      </Text>
-      <Text style={styles.pointsAwarded}>Points Awarded: {item.points_awarded}</Text>
-    </View>
-  );  
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#1e90ff" />
+        <Text>Loading feed...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#1e90ff" />
-      ) : (
-        <FlatList
-          data={activities}
-          renderItem={renderActivity}
-          keyExtractor={(item, index) => index.toString()}
-          ListEmptyComponent={<Text style={styles.emptyText}>No activities completed yet.</Text>}
-        />
-      )}
+      <Text style={styles.header}>Activity Feed (Newest First)</Text>
+      <SectionList
+        sections={activities}
+        keyExtractor={(item, index) => item.completed_at + index}
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={styles.sectionHeader}>{title}</Text>
+        )}
+        renderItem={({ item }) => (
+          <View style={styles.activityItem}>
+            <Text style={[styles.icon, { color: activityTypeColors[item.activity_type] }]}>
+              {activityTypeIcons[item.activity_type]}
+            </Text>
+            <View style={styles.activityDetails}>
+              <Text style={[styles.activityType, { color: activityTypeColors[item.activity_type] }]}>
+                {item.activity_type}
+              </Text>
+              <Text style={styles.username}>{item.username}</Text>
+              <Text style={styles.completedAt}>{formatTimestamp(item.completed_at)}</Text>
+              <Text style={styles.points}>Points Awarded: {item.points_awarded}</Text>
+            </View>
+          </View>
+        )}
+      />
     </View>
   );
 }
@@ -72,43 +126,67 @@ export default function ActivityFeed() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
+    padding: 10,
+    backgroundColor: '#f8f8f8',
   },
-  activityContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  userName: {
+  header: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  sectionHeader: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2c3e50',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  icon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  activityDetails: {
+    flex: 1,
   },
   activityType: {
-    fontSize: 14,
-    color: '#27ae60',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  activityDate: {
+  username: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 2,
+  },
+  completedAt: {
     fontSize: 12,
     color: '#7f8c8d',
+    marginTop: 4,
   },
-  pointsAwarded: {
+  points: {
     fontSize: 14,
     color: '#27ae60',
     marginTop: 4,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#7f8c8d',
-    fontStyle: 'italic',
-    marginTop: 8,
   },
 });
