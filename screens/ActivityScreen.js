@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
@@ -21,10 +22,21 @@ export default function ActivityScreen() {
       quality: 1,
     });
 
-    if (!result.cancelled) {
-      setImage(result.uri);
-      Alert.alert("Image uploaded successfully!", `Activity: ${selectedActivity}`);
+    if (!result.cancelled && result.assets && result.assets.length > 0) {
+      const imageUri = result.assets[0].uri;
+      if (imageUri) {
+        setImage(imageUri);
+        Alert.alert("Image selected successfully!", `Activity: ${selectedActivity}`);
+        // Save the image URI to local storage
+        await AsyncStorage.setItem('selectedImageUri', imageUri);
+        console.log('Image URI saved to local storage:', imageUri);
+      } else {
+        console.error("Image URI is undefined");
+      }
+    } else {
+      console.error("Image selection was cancelled or no image assets found");
     }
+
   };
 
   return (
