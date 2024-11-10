@@ -1,21 +1,39 @@
-// 
-import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import awardPoints from '../awardPoints';
 import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { activityKeywords } from '../utils';
-import { ActivityIndicator } from 'react-native-paper';
+import { storeLocationData } from '../services/firestoreUtils'; // Import function to store data in Firestore
+
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
   const [validationResult, setValidationResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [location, setLocation] = useState(null);
 
-  // Function to handle image upload
+  // Request location permission and fetch current location on component mount
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Denied", "Location access is required to submit eco-friendly activities.");
+        return;
+      }
+
+      // Retrieve the user's current location
+      const userLocation = await Location.getCurrentPositionAsync({});
+      setLocation(userLocation.coords);
+    };
+
+    requestLocationPermission();
+  }, []);
+
   const handleImageUpload = async () => {
     if (!selectedActivity) {
       Alert.alert('Please select an activity type before uploading!');
@@ -33,16 +51,11 @@ export default function ActivityScreen() {
       const imageUri = result.assets[0].uri;
       if (imageUri) {
         setImage(imageUri);
-        setValidationResult(''); // Clear previous validation result
-        setIsLoading(false); // Reset loading state on re-upload
+        setValidationResult('');
+        setIsLoading(false);
         await AsyncStorage.setItem('selectedImageUri', imageUri);
-        console.log('Image URI saved to local storage:', imageUri);
         Alert.alert("Image selected successfully! Please proceed with validation.");
-      } else {
-        console.error("Image URI is undefined");
       }
-    } else {
-      console.error("Image selection was cancelled or no image assets found");
     }
   };
 
@@ -56,59 +69,59 @@ export default function ActivityScreen() {
       reader.readAsDataURL(blob);
     });
   };
+
   const handleImageValidation = async () => {
-    try {
-        setIsLoading(true);
-        setValidationResult(''); // Clear previous validation result
-
-        const imageUri = await AsyncStorage.getItem('selectedImageUri');
-        if (!imageUri) {
-            Alert.alert('No image found in local storage!');
-            setIsLoading(false); // Stop loading if no image found
-            return;
-        }
-
-        const base64Image = await getBase64FromUri(imageUri);
-        const genAI = new GoogleGenerativeAI("AIzaSyAi1f6UgCmFh0z1qIO1ZLvgCumJnCnPYLY");
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-
-        const imageData = {
-            inlineData: {
-                data: base64Image,
-                mimeType: 'image/jpeg'
-            }
-        };
-
-        const result = await model.generateContent([
-            'Is this a photo of the selected activity?',
-            imageData
-        ]);
-
-        const response = await result.response;
-        const text = await response.text();
-
-        setValidationResult(text);
-
-        // Retrieve the keywords for the selected activity
-        const keywords = activityKeywords[selectedActivity] || [];
-
-        // Check if any of the keywords are present in the validation result
-        const isMatch = keywords.some(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
-
-        if (isMatch) { // If any keyword matches, assume validation is successful
-            Alert.alert('Validation Complete', 'The image matches the selected activity!');
-            await handleAwardPoints(); // Award points if validated
-        } else {
-            Alert.alert("Validation Failed", "The image does not match the selected activity.");
-        }
-    } catch (error) {
-        console.error('Error validating image:', error);
-        Alert.alert('Error', 'Failed to validate image: ' + error.message);
-
-        setIsLoading(false);
+    if (!location) {
+      Alert.alert("Location Error", "Unable to retrieve your location. Please enable location services.");
+      return;
     }
-};
 
+    try {
+      setIsLoading(true);
+      const imageUri = await AsyncStorage.getItem('selectedImageUri');
+      if (!imageUri) {
+        Alert.alert('No image found in local storage!');
+        setIsLoading(false);
+        return;
+      }
+
+      const base64Image = await getBase64FromUri(imageUri);
+      const genAI = new GoogleGenerativeAI("AIzaSyAi1f6UgCmFh0z1qIO1ZLvgCumJnCnPYLYr");
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+
+      const imageData = {
+        inlineData: {
+          data: base64Image,
+          mimeType: 'image/jpeg'
+        }
+      };
+
+      const result = await model.generateContent([
+        'Is this a photo of the selected activity?',
+        imageData
+      ]);
+
+      const response = await result.response;
+      const text = await response.text();
+      setValidationResult(text);
+
+      const keywords = activityKeywords[selectedActivity] || [];
+      const isMatch = keywords.some(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
+
+      if (isMatch) {
+        Alert.alert('Validation Complete', 'The image matches the selected activity!');
+        await handleAwardPoints();
+        await handleSubmitLocation(); // Call to submit location to Firestore
+      } else {
+        Alert.alert("Validation Failed", "The image does not match the selected activity.");
+      }
+    } catch (error) {
+      console.error('Error validating image:', error);
+      Alert.alert('Error', 'Failed to validate image: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAwardPoints = async () => {
     const userId = auth.currentUser?.uid;
@@ -121,11 +134,30 @@ export default function ActivityScreen() {
       const isTaskCompleted = true;
       await awardPoints(userId, selectedActivity, isTaskCompleted);
       Alert.alert("Success!", `Points awarded for: ${selectedActivity}`);
-    } catch (errormm) {
+    } catch (error) {
       console.error("Error awarding points:", error);
       Alert.alert("Error", "Could not award points.");
     }
   };
+
+  const handleSubmitLocation = async () => {
+    const locationData = {
+      name: selectedActivity,
+      type: selectedActivity.toLowerCase().replace(/\s+/g, '-'),
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: new Date().toISOString(),
+      userId: auth.currentUser ? auth.currentUser.uid : null,
+    };
+
+    const success = await storeLocationData(locationData);
+    if (success) {
+      Alert.alert('Success', 'Eco activity location has been added.');
+    } else {
+      Alert.alert('Error', 'Failed to store location data.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Select Activity Type</Text>
@@ -138,28 +170,26 @@ export default function ActivityScreen() {
         >
           <Picker.Item label="Choose an activity" value="" />
           <Picker.Item label="Litter Collection" value="Litter Collection" />
-        <Picker.Item label="Recycling" value="Recycling" />
-        <Picker.Item label="Tree Planting" value="Tree Planting" />
-        <Picker.Item label="Gardening" value="Gardening" />
-        <Picker.Item label="Reducing Water Waste" value="Reducing Water Waste" />
-        <Picker.Item label="Saving Energy" value="Saving Energy" />
-        <Picker.Item label="Walking or Cycling" value="Walking or Cycling" />
-        <Picker.Item label="Carpooling" value="Carpooling" />
-        <Picker.Item label="Wildlife Protection" value="Wildlife Protection" />
-        <Picker.Item label="Eco-Workshops and Campaigns" value="Eco-Workshops and Campaigns" />
+          <Picker.Item label="Recycling" value="Recycling" />
+          <Picker.Item label="Tree Planting" value="Tree Planting" />
+          <Picker.Item label="Gardening" value="Gardening" />
+          <Picker.Item label="Reducing Water Waste" value="Reducing Water Waste" />
+          <Picker.Item label="Saving Energy" value="Saving Energy" />
+          <Picker.Item label="Walking or Cycling" value="Walking or Cycling" />
+          <Picker.Item label="Carpooling" value="Carpooling" />
+          <Picker.Item label="Wildlife Protection" value="Wildlife Protection" />
+          <Picker.Item label="Eco-Workshops and Campaigns" value="Eco-Workshops and Campaigns" />
         </Picker>
       </View>
 
       {image ? (
         <View style={styles.imageResultContainer}>
           {validationResult ? (
-            // Show validation result and option to re-upload image
             <>
               <Text style={styles.validationResultText}>{validationResult}</Text>
               <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
             </>
           ) : (
-            // Show options to re-upload or validate image
             <>
               {isLoading ? (
                 <ActivityIndicator animating={true} size="large" color="#1e90ff" />
@@ -173,7 +203,6 @@ export default function ActivityScreen() {
           )}
         </View>
       ) : (
-        // Show initial "Upload Image" button
         <Button title="Upload Image" onPress={handleImageUpload} color="#1e90ff" />
       )}
     </View>
@@ -208,11 +237,6 @@ const styles = StyleSheet.create({
   imageResultContainer: {
     marginTop: 20,
     alignItems: 'center',
-  },
-  imageUriText: {
-    fontSize: 14,
-    marginVertical: 10,
-    color: 'green',
   },
   validationResultText: {
     marginTop: 20,

@@ -3,14 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Menu, Avatar, Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Alert, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { auth } from './firebaseConfig';
-
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import MainAppScreen from './screens/MainAppScreen';
 import * as Location from 'expo-location';
-import { Alert, View, Text } from 'react-native';
 
 const Stack = createStackNavigator();
 
