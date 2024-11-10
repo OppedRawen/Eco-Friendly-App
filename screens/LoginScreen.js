@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
+
+import { View, Text, TextInput, Button, StyleSheet, TouchableWithoutFeedback, Keyboard,TouchableOpacity } from 'react-native';
+
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
-
+import EcoFact from './helper/funfact';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,33 +21,34 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}> 
-      {/* Wrap the whole component inside a View to prevent the error */}
-      <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          keyboardType="email-address" // Suggests an email keyboard for better UX
-          returnKeyType="next" // Move to the password input field when pressing "next" on the keyboard
-          onSubmitEditing={() => this.passwordInput.focus()} // Moves to password input when enter is pressed
-        />
-        <TextInput
-          ref={(input) => { this.passwordInput = input }} // Ref to access the password input field
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-          returnKeyType="done" // Displays "done" on the keyboard
-          onSubmitEditing={handleLogin} // Trigger login when enter is pressed
-        />
-        <Button title="Log In" onPress={handleLogin} />
-        <Button title="Sign Up" onPress={() => navigation.navigate("SignUp")} />
-      </View>
-    </TouchableWithoutFeedback>
+
+    <View style={styles.container}>
+      <EcoFact style ={styles.ecoFact} />
+      <Text style={styles.title}>Login</Text>
+      <TextInput
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        style={styles.input}
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity> 
+
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("SignUp")}>
+        <Text style={styles.buttonText}>Sign Up</Text>
+      </TouchableOpacity>
+
+    </View>
+
   );
 }
 
@@ -55,9 +58,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#e5ffb0', // Light green background to match eco-friendly theme
+  },
+  ecoFact:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#2E7D32',
     marginBottom: 20,
   },
   input: {
@@ -67,5 +79,19 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     borderWidth: 1,
     borderRadius: 5,
+  },
+  button: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginVertical: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

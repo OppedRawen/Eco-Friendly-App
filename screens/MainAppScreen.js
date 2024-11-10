@@ -5,7 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 
 import ActivityScreen from './ActivityScreen'; // Create ActivityScreen for activity functions
 import ProfileScreen from './ProfileScreen';   // Profile screen for user badges and activities
+
 import LeaderboardScreen from './LeaderboardScreen'; // Leaderboard screen
+
 
 const Tab = createBottomTabNavigator();
 
@@ -24,6 +26,7 @@ export default function MainAppScreen() {
 
   return (
     <Tab.Navigator initialRouteName="Activity">
+
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}
@@ -50,7 +53,10 @@ export default function MainAppScreen() {
             <Ionicons name="trophy" size={size} color={color} /> // Example icon for Leaderboard tab
           ),
         }}
-      />
+
+    
+
     </Tab.Navigator>
+
   );
 }

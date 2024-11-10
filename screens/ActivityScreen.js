@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, TouchableOpacity, ScrollView  } from 'react-native';
+import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, TouchableOpacity, ScrollView,Animated, Easing,Image, Modal  } from 'react-native';
+
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
@@ -8,8 +10,12 @@ import awardPoints from '../awardPoints';
 import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { activityKeywords } from '../utils';
-import { storeLocationData } from '../services/firestoreUtils'; // Import function to store data in Firestore
+
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import { storeLocationData } from '../services/firestoreUtils';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+
 
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
@@ -17,7 +23,11 @@ export default function ActivityScreen() {
   const [validationResult, setValidationResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [location, setLocation] = useState(null);
+
   const [comment, setComment] = useState(''); // State for optional comment
+
+  const bounceValue = useRef(new Animated.Value(0)).current;
+
   // Request location permission and fetch current location on component mount
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -34,6 +44,25 @@ export default function ActivityScreen() {
 
     requestLocationPermission();
   }, []);
+  const startBouncing = () => {
+    bounceValue.setValue(0);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceValue, {
+          toValue: -20,
+          duration: 500,
+          easing: Easing.bounce,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceValue, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.bounce,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  };
 
   const handleImageUpload = async () => {
     if (!selectedActivity) {
@@ -95,6 +124,7 @@ export default function ActivityScreen() {
     try {
       setIsLoading(true);
       const imageUri = await AsyncStorage.getItem('selectedImageUri');
+      startBouncing(); // Start the bouncing animation
       if (!imageUri) {
         Alert.alert('No image found in local storage!');
         setIsLoading(false);
@@ -102,7 +132,7 @@ export default function ActivityScreen() {
       }
 
       const base64Image = await getBase64FromUri(imageUri);
-      const genAI = new GoogleGenerativeAI("AIzaSyCNsfi-UTGf5ZOVlH1wvhfeiuB4IRPH8fo");
+      const genAI = new GoogleGenerativeAI("AIzaSyDDoO6mkY_BRJLhyhA3tFUc4f4J8LWSXww");
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
       const imageData = {
@@ -198,17 +228,33 @@ export default function ActivityScreen() {
         <View style={styles.imageResultContainer}>
           {validationResult ? (
             <>
-              <Text style={styles.validationResultText}>{validationResult}</Text>
-              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+              <TouchableOpacity
+                onPress={handleImageUpload}
+                style={styles.customButton}
+              >
+                <Text style={styles.customButtonText}>Reupload Image</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
               {isLoading ? (
-                <ActivityIndicator animating={true} size="large" color="#1e90ff" />
+                <Modal transparent={true} animationType="fade">
+                  <View style={styles.modalBackground}>
+                    <Animated.View style={[styles.bouncingImageContainer, { transform: [{ translateY: bounceValue }] }]}>
+                      <Image source={require('../assets/tree4.png')} style={styles.bouncingImage} />
+                    </Animated.View>
+                  </View>
+                </Modal>
               ) : (
                 <>
-                  <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
-                  <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+                  <TouchableOpacity title="Validate Image" onPress={handleImageValidation} style={styles.customButton}><Text style={styles.customButtonText}>Validate Image</Text></TouchableOpacity> 
+                  
+                  <TouchableOpacity
+                    onPress={handleImageUpload}
+                    style={styles.customButton}
+                  >
+                    <Text style={styles.customButtonText}>Upload Another?</Text>
+                  </TouchableOpacity>
                 </>
               )}
               {/* TextInput for optional comment */}
@@ -226,7 +272,12 @@ export default function ActivityScreen() {
           )}
         </View>
       ) : (
-        <Button title="Upload Image" onPress={handleImageUpload} color="#1e90ff" />
+        <TouchableOpacity
+          onPress={handleImageUpload}
+          style={styles.customButton}
+        >
+          <Text style={styles.customButtonText}>Upload Image</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -238,12 +289,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#e5ffb0',
   },
+
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#2E7D32', // Dark green for eco-friendliness
+
   },
   pickerContainer: {
     width: '100%',
@@ -254,6 +308,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#ffffff',
   },
+
   commentBox: {
     width: '100%',
     height: 100, // Increased height to look like a text box
@@ -265,8 +320,24 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top', // Aligns text to the top of the box
     marginTop: 10,
   },
+
+  customButton: {
+    backgroundColor: '#2E7D32', // Customize the background color here
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    marginTop: 10,
+  },
+  customButtonText: {
+    color: '#ffffff', // Customize the text color here
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+
   picker: {
     width: '100%',
+    
   },
   imageResultContainer: {
     marginTop: 20,
@@ -275,6 +346,22 @@ const styles = StyleSheet.create({
   validationResultText: {
     marginTop: 20,
     fontSize: 16,
-    color: 'blue',
+    color: '#2E7D32',
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bouncingImageContainer: {
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bouncingImage: {
+    width: 100,
+    height: 100,
   },
 });

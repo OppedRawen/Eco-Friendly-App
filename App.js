@@ -7,7 +7,11 @@ import { auth } from './firebaseConfig';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import MainAppScreen from './screens/MainAppScreen';
+
 import IntroductionScreen from './screens/IntroductionScreen';
+
+import IntroScreen  from './screens/IntroScreen';
+
 import * as Location from 'expo-location';
 
 const Stack = createStackNavigator();
@@ -16,7 +20,7 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#2c3e50',
+    primary: '#2E7D32',
     accent: '#1abc9c',
   },
 };
@@ -92,7 +96,9 @@ export default function App() {
     <PaperProvider theme={theme}>
       <NavigationContainer>
         <Stack.Navigator 
-          initialRouteName="Introduction" // Set Introduction as the initial route
+
+          initialRouteName="Intro"
+
           screenOptions={{
             headerStyle: styles.header,
             headerTitleStyle: styles.headerTitle,
@@ -113,6 +119,11 @@ export default function App() {
             component={SignUpScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="Intro"
+            component={IntroScreen}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen 
             name="MainApp" 
             component={MainAppScreen} 
@@ -129,13 +140,13 @@ export default function App() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#5d4037',
     elevation: 4,
     shadowOpacity: 0.3,
     shadowRadius: 5,
   },
   headerTitle: {
-    color: '#2c3e50',
+    color: '#ffffff',
     fontSize: 20,
     fontWeight: '600',
   },
@@ -144,7 +155,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    backgroundColor: '#2c3e50',
+    backgroundColor: '#2c3e59',
   },
   menuContent: {
     marginTop: 45,
