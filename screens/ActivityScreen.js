@@ -54,6 +54,7 @@ export default function ActivityScreen() {
         setValidationResult('');
         setIsLoading(false);
         await AsyncStorage.setItem('selectedImageUri', imageUri);
+        // console.log('Image URI saved to local storage:', imageUri);
         Alert.alert("Image selected successfully! Please proceed with validation.");
       }
     }
