@@ -34,6 +34,7 @@ export default function ActivityScreen() {
       if (imageUri) {
         setImage(imageUri);
         setValidationResult(''); // Clear previous validation result
+        setIsLoading(false); // Reset loading state on re-upload
         await AsyncStorage.setItem('selectedImageUri', imageUri);
         console.log('Image URI saved to local storage:', imageUri);
         Alert.alert("Image selected successfully! Please proceed with validation.");
@@ -63,6 +64,7 @@ export default function ActivityScreen() {
         const imageUri = await AsyncStorage.getItem('selectedImageUri');
         if (!imageUri) {
             Alert.alert('No image found in local storage!');
+            setIsLoading(false); // Stop loading if no image found
             return;
         }
 

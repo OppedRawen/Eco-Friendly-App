@@ -1,7 +1,7 @@
 const activityKeywords = {
     "Litter Collection": [
       "litter", "trash", "garbage", "cleanup", "debris", "waste", 
-      "rubbish", "clean environment", "discarded items", "public cleanup", "waste", "waste sorting"
+      "rubbish", "clean environment", "discarded items", "public cleanup", "waste", "waste sorting","recycle", "recycling", "materials", "waste sorting", "reuse",
     ],
     "Recycling": [
       "recycle", "recycling", "materials", "waste sorting", "reuse", 
