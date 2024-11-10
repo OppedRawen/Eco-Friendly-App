@@ -13,10 +13,11 @@ export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
   const [validationResult, setValidationResult] = useState('');
-  
+
+  // Function to handle image upload
   const handleImageUpload = async () => {
     if (!selectedActivity) {
-      Alert.alert("Please select an activity type before uploading!");
+      Alert.alert('Please select an activity type before uploading!');
       return;
     }
 
@@ -31,6 +32,7 @@ export default function ActivityScreen() {
       const imageUri = result.assets[0].uri;
       if (imageUri) {
         setImage(imageUri);
+        setValidationResult(''); // Clear previous validation result
         await AsyncStorage.setItem('selectedImageUri', imageUri);
         console.log('Image URI saved to local storage:', imageUri);
         Alert.alert("Image selected successfully! Please proceed with validation.");
@@ -52,7 +54,6 @@ export default function ActivityScreen() {
       reader.readAsDataURL(blob);
     });
   };
-
   const handleImageValidation = async () => {
     try {
         setValidationResult(''); // Clear previous validation result
@@ -119,31 +120,45 @@ export default function ActivityScreen() {
       Alert.alert("Error", "Could not award points.");
     }
   };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Select Activity Type</Text>
-      <Picker
-        selectedValue={selectedActivity}
-        onValueChange={(itemValue) => setSelectedActivity(itemValue)}
-        style={styles.picker}
-      >
-        <Picker.Item label="Choose an activity" value="" />
-        <Picker.Item label="Litter Collection" value="Litter Collection" />
-        <Picker.Item label="Recycling" value="Recycling" />
-        <Picker.Item label="Tree Planting" value="Tree Planting" />
-        <Picker.Item label="Gardening" value="Gardening" />
-        <Picker.Item label="Reducing Water Waste" value="Reducing Water Waste" />
-        <Picker.Item label="Saving Energy" value="Saving Energy" />
-        <Picker.Item label="Walking or Cycling" value="Walking or Cycling" />
-        <Picker.Item label="Carpooling" value="Carpooling" />
-        <Picker.Item label="Wildlife Protection" value="Wildlife Protection" />
-        <Picker.Item label="Eco-Workshops and Campaigns" value="Eco-Workshops and Campaigns" />
-      </Picker>
-      <Button title="Upload Image" onPress={handleImageUpload} />
-      {image && <Text style={styles.imageText}>Image uploaded: {image}</Text>}
-      <Button title="Validate Image" onPress={handleImageValidation} />
-      {validationResult && <Text style={styles.validationText}>Validation result: {validationResult}</Text>}
+      
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedActivity}
+          onValueChange={(itemValue) => setSelectedActivity(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Choose an activity" value="" />
+          <Picker.Item label="Waste Management and Cleanup" value="Waste Management and Cleanup" />
+          <Picker.Item label="Conservation and Green Initiatives" value="Conservation and Green Initiatives" />
+          <Picker.Item label="Energy and Resource Conservation" value="Energy and Resource Conservation" />
+          <Picker.Item label="Sustainable Mobility" value="Sustainable Mobility" />
+          <Picker.Item label="Awareness and Education" value="Awareness and Education" />
+        </Picker>
+      </View>
+
+      {image ? (
+        <View style={styles.imageResultContainer}>
+          {validationResult ? (
+            // Show validation result and option to re-upload image
+            <>
+              <Text style={styles.validationResultText}>{validationResult}</Text>
+              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+            </>
+          ) : (
+            // Show options to re-upload or validate image
+            <>
+              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+              <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
+            </>
+          )}
+        </View>
+      ) : (
+        // Show initial "Upload Image" button
+        <Button title="Upload Image" onPress={handleImageUpload} color="#1e90ff" />
+      )}
     </View>
   );
 }
@@ -154,22 +169,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#f8f8f8',
   },
   title: {
     fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 20,
   },
-  picker: {
-    height: 50,
+  pickerContainer: {
     width: '100%',
     marginBottom: 20,
+    borderRadius: 5,
+    overflow: 'hidden',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    backgroundColor: '#ffffff',
   },
-  imageText: {
+  picker: {
+    width: '100%',
+  },
+  imageResultContainer: {
     marginTop: 20,
-    fontSize: 16,
+    alignItems: 'center',
+  },
+  imageUriText: {
+    fontSize: 14,
+    marginVertical: 10,
     color: 'green',
   },
-  validationText: {
+  validationResultText: {
     marginTop: 20,
     fontSize: 16,
     color: 'blue',
