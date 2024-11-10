@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 
 export default function SplashScreen({ navigation }) {
   const translateX = useRef(new Animated.Value(-300)).current;  // Start off-screen to the left
@@ -23,6 +23,12 @@ export default function SplashScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Logo Image */}
+      <Image
+        source={require('../assets/app_logo.png')}  // Adjust the path to your image
+        style={styles.logo}
+      />
+
       <Animated.Text style={[styles.title, { transform: [{ translateX }] }]}>
         Eco-Friendly App
       </Animated.Text>
@@ -41,5 +47,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: 'white',
     fontWeight: 'bold',
+    marginTop: 20,  // Add some space between the logo and title
+  },
+  logo: {
+    width: 150,  // Adjust the width according to your preference
+    height: 150,  // Adjust the height accordingly
+    resizeMode: 'contain',  // Ensures the logo is resized to fit the given dimensions
   },
 });

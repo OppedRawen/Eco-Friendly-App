@@ -1,7 +1,7 @@
 import { db } from './firebaseConfig';
 import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 
-const awardPoints = async (userId, activityType, isTaskCompleted) => {
+const awardPoints = async (userId, activityType, isTaskCompleted, comment) => {
     if (!isTaskCompleted) {
         console.log("Task not completed, no points awarded.");
         return;
@@ -77,7 +77,8 @@ const awardPoints = async (userId, activityType, isTaskCompleted) => {
         activity_history: arrayUnion({
             activity_type: activityType,
             points_awarded: points,
-            completed_at: new Date().toISOString()
+            completed_at: new Date().toISOString(),
+            description: comment
         })
     });
 

@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Menu, Avatar, Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Alert, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { auth } from './firebaseConfig';
-
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import MainAppScreen from './screens/MainAppScreen';
-import SplashScreen from './screens/IntroductionScreen';
-
+import IntroductionScreen from './screens/IntroductionScreen';
+import * as Location from 'expo-location';
 
 const Stack = createStackNavigator();
 
-// You can customize the theme if needed
 const theme = {
   ...DefaultTheme,
   colors: {
@@ -32,7 +30,6 @@ const HeaderRight = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-     
       navigation.replace("Login");
     } catch (error) {
       console.error("Error signing out: ", error);
@@ -69,15 +66,64 @@ const HeaderRight = ({ navigation }) => {
 };
 
 export default function App() {
+  const [location, setLocation] = useState(null);
+
+  const requestLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        "Permission Denied",
+        "Location access is required to use map features in the app.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    const userLocation = await Location.getCurrentPositionAsync({});
+    setLocation(userLocation.coords);
+  };
+
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="MainApp" component={MainAppScreen} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <PaperProvider theme={theme}>
+      <NavigationContainer>
+        <Stack.Navigator 
+          initialRouteName="Introduction" // Set Introduction as the initial route
+          screenOptions={{
+            headerStyle: styles.header,
+            headerTitleStyle: styles.headerTitle,
+          }}
+        >
+          <Stack.Screen 
+            name="Introduction" 
+            component={IntroductionScreen} 
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Login" 
+            component={LoginScreen} 
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="SignUp" 
+            component={SignUpScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="MainApp" 
+            component={MainAppScreen} 
+            options={({ navigation }) => ({
+              headerRight: () => <HeaderRight navigation={navigation} />,
+              title: "EcoTracker",
+            })}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </PaperProvider>
   );
 }
 
