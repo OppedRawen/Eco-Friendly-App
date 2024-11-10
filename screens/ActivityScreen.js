@@ -1,9 +1,14 @@
+// 
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import awardPoints from '../awardPoints';
+import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { activityKeywords } from '../utils';
+
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
@@ -23,19 +28,19 @@ export default function ActivityScreen() {
       quality: 1,
     });
 
-    if (!result.cancelled && result.assets && result.assets.length > 0) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
       if (imageUri) {
         setImage(imageUri);
-        Alert.alert('Image uploaded successfully!');
-        // Save the image URI to local storage
+        setValidationResult(''); // Clear previous validation result
         await AsyncStorage.setItem('selectedImageUri', imageUri);
         console.log('Image URI saved to local storage:', imageUri);
+        Alert.alert("Image selected successfully! Please proceed with validation.");
       } else {
-        console.error('Image URI is undefined');
+        console.error("Image URI is undefined");
       }
     } else {
-      console.error('Image selection was cancelled or no image assets found');
+      console.error("Image selection was cancelled or no image assets found");
     }
   };
 
@@ -44,55 +49,75 @@ export default function ActivityScreen() {
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const base64String = reader.result.split(',')[1];
-        resolve(base64String);
-      };
+      reader.onload = () => resolve(reader.result.split(',')[1]);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   };
   const handleImageValidation = async () => {
     try {
-      const imageUri = await AsyncStorage.getItem('selectedImageUri');
-      if (!imageUri) {
-        Alert.alert('No image found in local storage!');
-        return;
-      }
+        setValidationResult(''); // Clear previous validation result
 
-      console.log('Retrieved image URI from local storage:', imageUri);
-
-      // Convert image to base64
-      const base64Image = await getBase64FromUri(imageUri);
-
-      // Initialize the Gemini API
-      const genAI = new GoogleGenerativeAI("AIzaSyA_fijktJ7-6b-3d72eUwIaJ3rRpref1oo"); // Make sure to use EXPO_PUBLIC_ prefix
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use gemini-1.5-pro for image analysis
-
-      // Prepare the image data
-      const imageData = {
-        inlineData: {
-          data: base64Image,
-          mimeType: 'image/jpeg'
+        const imageUri = await AsyncStorage.getItem('selectedImageUri');
+        if (!imageUri) {
+            Alert.alert('No image found in local storage!');
+            return;
         }
-      };
 
-      // Generate content with the image
-      const result = await model.generateContent([
-        'Is this a photo?',
-        imageData
-      ]);
+        const base64Image = await getBase64FromUri(imageUri);
+        const genAI = new GoogleGenerativeAI("AIzaSyAi1f6UgCmFh0z1qIO1ZLvgCumJnCnPYLY");
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-      const response = await result.response;
-      const text = response.text();
-      
-      console.log('Validation result:', text);
-      setValidationResult(text);
-      Alert.alert('Validation Complete', text);
+        const imageData = {
+            inlineData: {
+                data: base64Image,
+                mimeType: 'image/jpeg'
+            }
+        };
 
+        const result = await model.generateContent([
+            'Is this a photo of the selected activity?',
+            imageData
+        ]);
+
+        const response = await result.response;
+        const text = await response.text();
+
+        setValidationResult(text);
+
+        // Retrieve the keywords for the selected activity
+        const keywords = activityKeywords[selectedActivity] || [];
+
+        // Check if any of the keywords are present in the validation result
+        const isMatch = keywords.some(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
+
+        if (isMatch) { // If any keyword matches, assume validation is successful
+            Alert.alert('Validation Complete', 'The image matches the selected activity!');
+            await handleAwardPoints(); // Award points if validated
+        } else {
+            Alert.alert("Validation Failed", "The image does not match the selected activity.");
+        }
     } catch (error) {
-      console.error('Error validating image:', error);
-      Alert.alert('Error', 'Failed to validate image: ' + error.message);
+        console.error('Error validating image:', error);
+        Alert.alert('Error', 'Failed to validate image: ' + error.message);
+    }
+};
+
+
+  const handleAwardPoints = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      Alert.alert("Error", "User is not authenticated.");
+      return;
+    }
+
+    try {
+      const isTaskCompleted = true;
+      await awardPoints(userId, selectedActivity, isTaskCompleted);
+      Alert.alert("Success!", `Points awarded for: ${selectedActivity}`);
+    } catch (error) {
+      console.error("Error awarding points:", error);
+      Alert.alert("Error", "Could not award points.");
     }
   };
   return (
@@ -116,14 +141,22 @@ export default function ActivityScreen() {
 
       {image ? (
         <View style={styles.imageResultContainer}>
-          {/* <Text style={styles.imageUriText}>Image uploaded: {image}</Text> */}
           {validationResult ? (
-            <Text style={styles.validationResultText}>{validationResult}</Text>
+            // Show validation result and option to re-upload image
+            <>
+              <Text style={styles.validationResultText}>{validationResult}</Text>
+              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+            </>
           ) : (
-            <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
+            // Show options to re-upload or validate image
+            <>
+              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+              <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
+            </>
           )}
         </View>
       ) : (
+        // Show initial "Upload Image" button
         <Button title="Upload Image" onPress={handleImageUpload} color="#1e90ff" />
       )}
     </View>
