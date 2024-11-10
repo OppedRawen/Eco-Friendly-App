@@ -87,7 +87,7 @@ export default function ActivityScreen() {
       }
 
       const base64Image = await getBase64FromUri(imageUri);
-      const genAI = new GoogleGenerativeAI("AIzaSyCNsfi-UTGf5ZOVlH1wvhfeiuB4IRPH8fo");
+      const genAI = new GoogleGenerativeAI("AIzaSyDDoO6mkY_BRJLhyhA3tFUc4f4J8LWSXww");
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
       const imageData = {
