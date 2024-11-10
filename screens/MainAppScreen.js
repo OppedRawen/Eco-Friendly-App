@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import ActivityScreen from './ActivityScreen'; // Create ActivityScreen for activity functions
 import ProfileScreen from './ProfileScreen';   // Profile screen for user badges and activities
-
+import LeaderboardScreen from './LeaderboardScreen';
 const Tab = createBottomTabNavigator();
 
 export default function MainAppScreen() {
@@ -26,6 +26,8 @@ export default function MainAppScreen() {
     <Tab.Navigator initialRouteName="Activity">
       <Tab.Screen name="Activity" component={ActivityScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
     </Tab.Navigator>
+
   );
 }
