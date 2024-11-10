@@ -1,8 +1,11 @@
+// 
 // screens/SignUpScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import { db } from '../firebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -10,8 +13,19 @@ export default function SignUpScreen({ navigation }) {
 
   const handleSignUp = () => {
     createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
+      .then(async (userCredential) => {
         console.log("User registered:", userCredential.user);
+
+        // Initialize user data in Firestore
+        const userId = userCredential.user.uid;
+        await setDoc(doc(db, 'users', userId), {
+          user_id: userId,
+          name: email.split('@')[0], // Example to set name from email prefix
+          current_points: 0,
+          badge_level: "Eco Seedling",
+          activity_history: []
+        });
+
         navigation.replace("MainApp"); // Navigate to the main app after sign up
       })
       .catch((error) => {
