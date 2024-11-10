@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+
+import { View, Text, TextInput, Button, StyleSheet, TouchableWithoutFeedback, Keyboard,TouchableOpacity } from 'react-native';
+
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import EcoFact from './helper/funfact';
@@ -19,6 +21,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
+
     <View style={styles.container}>
       <EcoFact style ={styles.ecoFact} />
       <Text style={styles.title}>Login</Text>
@@ -45,6 +48,7 @@ export default function LoginScreen({ navigation }) {
       </TouchableOpacity>
 
     </View>
+
   );
 }
 

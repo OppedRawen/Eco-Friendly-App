@@ -1,4 +1,3 @@
-// App.js 
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -8,12 +7,15 @@ import { auth } from './firebaseConfig';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import MainAppScreen from './screens/MainAppScreen';
+
+import IntroductionScreen from './screens/IntroductionScreen';
+
 import IntroScreen  from './screens/IntroScreen';
+
 import * as Location from 'expo-location';
 
 const Stack = createStackNavigator();
 
-// You can customize the theme if needed
 const theme = {
   ...DefaultTheme,
   colors: {
@@ -32,7 +34,6 @@ const HeaderRight = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-     
       navigation.replace("Login");
     } catch (error) {
       console.error("Error signing out: ", error);
@@ -69,11 +70,9 @@ const HeaderRight = ({ navigation }) => {
 };
 
 export default function App() {
-
   const [location, setLocation] = useState(null);
 
   const requestLocationPermission = async () => {
-    // Request foreground location permission
     const { status } = await Location.requestForegroundPermissionsAsync();
     
     if (status !== 'granted') {
@@ -85,25 +84,31 @@ export default function App() {
       return;
     }
 
-    // If granted, get the current location
     const userLocation = await Location.getCurrentPositionAsync({});
     setLocation(userLocation.coords);
   };
 
   useEffect(() => {
-    requestLocationPermission(); // Request permission on app load
+    requestLocationPermission();
   }, []);
 
   return (
     <PaperProvider theme={theme}>
       <NavigationContainer>
         <Stack.Navigator 
+
           initialRouteName="Intro"
+
           screenOptions={{
             headerStyle: styles.header,
             headerTitleStyle: styles.headerTitle,
           }}
         >
+          <Stack.Screen 
+            name="Introduction" 
+            component={IntroductionScreen} 
+            options={{ headerShown: false }}
+          />
           <Stack.Screen 
             name="Login" 
             component={LoginScreen} 

@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, StyleSheet, Alert, Animated, Easing, Image, Modal } from 'react-native';
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, TouchableOpacity, ScrollView,Animated, Easing,Image, Modal  } from 'react-native';
+
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
@@ -8,8 +10,12 @@ import awardPoints from '../awardPoints';
 import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { activityKeywords } from '../utils';
+
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { storeLocationData } from '../services/firestoreUtils';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+
 
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
@@ -17,7 +23,11 @@ export default function ActivityScreen() {
   const [validationResult, setValidationResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [location, setLocation] = useState(null);
+
+  const [comment, setComment] = useState(''); // State for optional comment
+
   const bounceValue = useRef(new Animated.Value(0)).current;
+
   // Request location permission and fetch current location on component mount
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -91,6 +101,20 @@ export default function ActivityScreen() {
     });
   };
 
+  const activities = [
+    { name: 'Litter Collection', icon: 'trash-can-outline' },
+    { name: 'Recycling', icon: 'recycle' },
+    { name: 'Tree Planting', icon: 'tree' },
+    { name: 'Gardening', icon: 'flower' },
+    { name: 'Reducing Water Waste', icon: 'water-pump' },
+    { name: 'Saving Energy', icon: 'lightbulb-on-outline' },
+    { name: 'Walking or Cycling', icon: 'walk' },
+    { name: 'Carpooling', icon: 'car' },
+    { name: 'Wildlife Protection', icon: 'paw' },
+    { name: 'Eco-Workshops and Campaigns', icon: 'school' },
+  ];
+  
+
   const handleImageValidation = async () => {
     if (!location) {
       Alert.alert("Location Error", "Unable to retrieve your location. Please enable location services.");
@@ -126,6 +150,7 @@ export default function ActivityScreen() {
       const response = await result.response;
       const text = await response.text();
       setValidationResult(text);
+      setComment(comment)
 
       const keywords = activityKeywords[selectedActivity] || [];
       const isMatch = keywords.some(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
@@ -154,9 +179,9 @@ export default function ActivityScreen() {
 
     try {
       const isTaskCompleted = true;
-      await awardPoints(userId, selectedActivity, isTaskCompleted);
+      await awardPoints(userId, selectedActivity, isTaskCompleted, comment);
       Alert.alert("Success!", `Points awarded for: ${selectedActivity}`);
-    } catch (error) {
+    } catch (errormm) {
       console.error("Error awarding points:", error);
       Alert.alert("Error", "Could not award points.");
     }
@@ -170,11 +195,13 @@ export default function ActivityScreen() {
       longitude: location.longitude,
       timestamp: new Date().toISOString(),
       userId: auth.currentUser ? auth.currentUser.uid : null,
+      description: comment, 
     };
 
     const success = await storeLocationData(locationData);
     if (success) {
       Alert.alert('Success', 'Eco activity location has been added.');
+      setComment(''); //clear comment after submit to firebase
     } else {
       Alert.alert('Error', 'Failed to store location data.');
     }
@@ -184,25 +211,18 @@ export default function ActivityScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Select Activity Type</Text>
       
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedActivity}
-          onValueChange={(itemValue) => setSelectedActivity(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Choose an activity" value="" />
-          <Picker.Item label="Litter Collection" value="Litter Collection" />
-          <Picker.Item label="Recycling" value="Recycling" />
-          <Picker.Item label="Tree Planting" value="Tree Planting" />
-          <Picker.Item label="Gardening" value="Gardening" />
-          <Picker.Item label="Reducing Water Waste" value="Reducing Water Waste" />
-          <Picker.Item label="Saving Energy" value="Saving Energy" />
-          <Picker.Item label="Walking or Cycling" value="Walking or Cycling" />
-          <Picker.Item label="Carpooling" value="Carpooling" />
-          <Picker.Item label="Wildlife Protection" value="Wildlife Protection" />
-          <Picker.Item label="Eco-Workshops and Campaigns" value="Eco-Workshops and Campaigns" />
-        </Picker>
-      </View>
+      <ScrollView style={styles.iconGrid} contentContainerStyle={styles.iconGridContent}>
+        {activities.map((activity) => (
+          <TouchableOpacity 
+            key={activity.name} 
+            style={[styles.iconContainer, selectedActivity === activity.name && styles.selectedIcon]}
+            onPress={() => setSelectedActivity(activity.name)}
+          >
+            <Icon name={activity.icon} size={40} color={selectedActivity === activity.name ? '#1e90ff' : '#000'} />
+            <Text style={styles.iconLabel}>{activity.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {image ? (
         <View style={styles.imageResultContainer}>
@@ -237,6 +257,17 @@ export default function ActivityScreen() {
                   </TouchableOpacity>
                 </>
               )}
+              {/* TextInput for optional comment */}
+              <TextInput
+                placeholder="Comment (optional)"
+                style={styles.commentBox}
+                value={comment}
+                onChangeText={setComment}
+                multiline={true}
+                numberOfLines={4} // Allows for multiple lines
+                onSubmitEditing={() => Keyboard.dismiss()} // Dismiss the keyboard on Enter
+                returnKeyType="done" // Sets the return key label to "done"
+              />
             </>
           )}
         </View>
@@ -277,6 +308,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#ffffff',
   },
+
+  commentBox: {
+    width: '100%',
+    height: 100, // Increased height to look like a text box
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: '#ffffff',
+    textAlignVertical: 'top', // Aligns text to the top of the box
+    marginTop: 10,
+  },
+
   customButton: {
     backgroundColor: '#2E7D32', // Customize the background color here
     paddingVertical: 10,
@@ -290,6 +334,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+
   picker: {
     width: '100%',
     
