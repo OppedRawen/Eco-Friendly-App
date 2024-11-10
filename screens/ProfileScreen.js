@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, FlatList, StyleSheet, RefreshControl, Image } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
@@ -10,6 +10,12 @@ export default function ProfileScreen() {
   const [badgeLevel, setBadgeLevel] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Define the badge image mapping
+  const badgeImageMap = {
+    "Recycling": require('../assets/recycling.png'),
+    "Tree Planting": require('../assets/treeBadge.png'),
+  };
 
   useEffect(() => {
     let unsubscribe;
@@ -30,7 +36,16 @@ export default function ProfileScreen() {
             const userData = doc.data();
             setPoints(userData.current_points || 0);
             setBadgeLevel(userData.badge_level || '');
-            setBadges(userData.badges || []);
+            
+            // Get unique activity types that have badges
+            const uniqueActivities = new Set(
+              (userData.activity_history || [])
+                .map(activity => activity.activity_type)
+                .filter(type => badgeImageMap.hasOwnProperty(type))
+            );
+            
+            // Convert to array and set as badges
+            setBadges(Array.from(uniqueActivities));
             
             // Sort activities by date in descending order
             const sortedActivities = [...(userData.activity_history || [])].sort(
@@ -70,7 +85,17 @@ export default function ProfileScreen() {
           const userData = userDoc.data();
           setPoints(userData.current_points || 0);
           setBadgeLevel(userData.badge_level || '');
-          setBadges(userData.badges || []);
+          
+          // Get unique activity types that have badges
+          const uniqueActivities = new Set(
+            (userData.activity_history || [])
+              .map(activity => activity.activity_type)
+              .filter(type => badgeImageMap.hasOwnProperty(type))
+          );
+          
+          // Convert to array and set as badges
+          setBadges(Array.from(uniqueActivities));
+          
           const sortedActivities = [...(userData.activity_history || [])].sort(
             (a, b) => b.completed_at - a.completed_at
           );
@@ -83,6 +108,17 @@ export default function ProfileScreen() {
       setRefreshing(false);
     }
   }, []);
+
+  const renderBadge = ({ item }) => (
+    <View style={styles.badgeContainer}>
+      <Image 
+        source={badgeImageMap[item]} 
+        style={styles.badgeImage}
+    
+      />
+      <Text style={styles.badgeLabel}>{item}</Text>
+    </View>
+  );
 
   const renderActivity = ({ item }) => (
     <View style={styles.activityContainer}>
@@ -120,11 +156,7 @@ export default function ProfileScreen() {
         <FlatList
           horizontal
           data={badges}
-          renderItem={({ item }) => (
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badge}>{item}</Text>
-            </View>
-          )}
+          renderItem={renderBadge}
           keyExtractor={(item, index) => index.toString()}
           showsHorizontalScrollIndicator={false}
         />
@@ -147,12 +179,21 @@ export default function ProfileScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
+  },
+  badgeImage: {
+    width: 60,
+    height: 60,
+    marginBottom: 20,
+  },
+  badgeLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#2c3e50',
   },
   centered: {
     justifyContent: 'center',
@@ -191,7 +232,7 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
   },
   badgeContainer: {
-    backgroundColor: '#fff',
+
     padding: 12,
     marginRight: 12,
     borderRadius: 8,
