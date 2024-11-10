@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect,useRef } from 'react';
-import { View, Text, Button, StyleSheet, Alert, ActivityIndicator, TextInput, Keyboard, ScrollView,Animated, Easing,Image, Modal  } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Animated, Easing, Image, KeyboardAvoidingView, Platform } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -10,11 +10,12 @@ import awardPoints from '../awardPoints';
 import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { activityKeywords } from '../utils';
+import { TextInput as PaperTextInput, Button } from 'react-native-paper';
 
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { storeLocationData } from '../services/firestoreUtils';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+// import { TouchableOpacity } from 'react-native-gesture-handler';
 
 
 export default function ActivityScreen() {
@@ -208,6 +209,11 @@ export default function ActivityScreen() {
   };
 
   return (
+    <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    enabled
+  >
     <View style={styles.container}>
       <Text style={styles.title}>Select Activity Type</Text>
       
@@ -258,16 +264,7 @@ export default function ActivityScreen() {
                 </>
               )}
               {/* TextInput for optional comment */}
-              <TextInput
-                placeholder="Comment (optional)"
-                style={styles.commentBox}
-                value={comment}
-                onChangeText={setComment}
-                multiline={true}
-                numberOfLines={4} // Allows for multiple lines
-                onSubmitEditing={() => Keyboard.dismiss()} // Dismiss the keyboard on Enter
-                returnKeyType="done" // Sets the return key label to "done"
-              />
+      
             </>
           )}
         </View>
@@ -280,7 +277,9 @@ export default function ActivityScreen() {
         </TouchableOpacity>
       )}
     </View>
+    </KeyboardAvoidingView>
   );
+  
 }
 
 const styles = StyleSheet.create({
@@ -308,7 +307,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#ffffff',
   },
-
+  iconContainer:{
+// flex inline
+    
+    display: 'flex',
+    flexDirection: 'row',
+  },
   commentBox: {
     width: '100%',
     height: 100, // Increased height to look like a text box
@@ -327,6 +331,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
     marginTop: 10,
+    marginBottom:20,
   },
   customButtonText: {
     color: '#ffffff', // Customize the text color here
