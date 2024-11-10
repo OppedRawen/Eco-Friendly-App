@@ -8,11 +8,12 @@ import awardPoints from '../awardPoints';
 import { auth } from '../firebaseConfig';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { activityKeywords } from '../utils';
-
+import { ActivityIndicator } from 'react-native-paper';
 export default function ActivityScreen() {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [image, setImage] = useState(null);
   const [validationResult, setValidationResult] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Function to handle image upload
   const handleImageUpload = async () => {
@@ -56,6 +57,7 @@ export default function ActivityScreen() {
   };
   const handleImageValidation = async () => {
     try {
+        setIsLoading(true);
         setValidationResult(''); // Clear previous validation result
 
         const imageUri = await AsyncStorage.getItem('selectedImageUri');
@@ -100,6 +102,8 @@ export default function ActivityScreen() {
     } catch (error) {
         console.error('Error validating image:', error);
         Alert.alert('Error', 'Failed to validate image: ' + error.message);
+
+        setIsLoading(false);
     }
 };
 
@@ -115,7 +119,7 @@ export default function ActivityScreen() {
       const isTaskCompleted = true;
       await awardPoints(userId, selectedActivity, isTaskCompleted);
       Alert.alert("Success!", `Points awarded for: ${selectedActivity}`);
-    } catch (error) {
+    } catch (errormm) {
       console.error("Error awarding points:", error);
       Alert.alert("Error", "Could not award points.");
     }
@@ -131,11 +135,16 @@ export default function ActivityScreen() {
           style={styles.picker}
         >
           <Picker.Item label="Choose an activity" value="" />
-          <Picker.Item label="Waste Management and Cleanup" value="Waste Management and Cleanup" />
-          <Picker.Item label="Conservation and Green Initiatives" value="Conservation and Green Initiatives" />
-          <Picker.Item label="Energy and Resource Conservation" value="Energy and Resource Conservation" />
-          <Picker.Item label="Sustainable Mobility" value="Sustainable Mobility" />
-          <Picker.Item label="Awareness and Education" value="Awareness and Education" />
+          <Picker.Item label="Litter Collection" value="Litter Collection" />
+        <Picker.Item label="Recycling" value="Recycling" />
+        <Picker.Item label="Tree Planting" value="Tree Planting" />
+        <Picker.Item label="Gardening" value="Gardening" />
+        <Picker.Item label="Reducing Water Waste" value="Reducing Water Waste" />
+        <Picker.Item label="Saving Energy" value="Saving Energy" />
+        <Picker.Item label="Walking or Cycling" value="Walking or Cycling" />
+        <Picker.Item label="Carpooling" value="Carpooling" />
+        <Picker.Item label="Wildlife Protection" value="Wildlife Protection" />
+        <Picker.Item label="Eco-Workshops and Campaigns" value="Eco-Workshops and Campaigns" />
         </Picker>
       </View>
 
@@ -150,8 +159,14 @@ export default function ActivityScreen() {
           ) : (
             // Show options to re-upload or validate image
             <>
-              <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
-              <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
+              {isLoading ? (
+                <ActivityIndicator animating={true} size="large" color="#1e90ff" />
+              ) : (
+                <>
+                  <Button title="Validate Image" onPress={handleImageValidation} color="#1e90ff" />
+                  <Button title="Reupload Image" onPress={handleImageUpload} color="#1e90ff" />
+                </>
+              )}
             </>
           )}
         </View>
