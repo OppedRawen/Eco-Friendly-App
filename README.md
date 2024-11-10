@@ -23,14 +23,15 @@ Conservation Impact Passport is a mobile app that allows users to log eco-friend
 ```bash
 git clone [https://github.com/OppedRawen/Eco-Friendly-App.git]
 cd Eco-Friendly-App
-
+```
 ### 2. Install Depedencies
 ```bash
 npm install
-
+```
 ### 3. Set Up Firebase
 
 ### 4. Start the Development Server
 To run the app in Expo:
 ``` bash
 npx expo start
+```
