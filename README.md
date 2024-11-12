@@ -1,6 +1,6 @@
-# Conservation Impact Passport
+# Eco Tracker
 
-Conservation Impact Passport is a mobile app that allows users to log eco-friendly activities, earn points and badges, view activity feeds, and check the leaderboard for top scores.
+Eco Tracker is a mobile app that allows users to log eco-friendly activities, earn points and badges, view activity feeds, and check the leaderboard for top scores.
 
 ## Features
 
